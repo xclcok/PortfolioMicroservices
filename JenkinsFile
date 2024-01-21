@@ -1,0 +1,121 @@
+pipeline {
+    agent any
+    tools {
+        maven 'maven'
+    }
+
+    stages {
+        stage('Git Clone') {
+            steps {
+                script {
+                    checkout([$class: 'GitSCM', branches: [[name: 'main']], userRemoteConfigs: [[url: 'https://github.com/xclcok/PortfolioMicroservices.git']]])
+
+                }
+            }
+        }
+
+                stage('Build Docker') {
+                    steps {
+                        script {
+                            // Navigate into the project directory before running Maven commands
+                            dir('portfolio') {
+                                bat 'mvn clean install package'
+                            }
+
+                            dir('profile') {
+                                bat 'mvn clean install package'
+                            }
+                            dir('gateway-server') {
+                                bat 'mvn clean install package'
+                            }
+                            dir('eureka-server') {
+                                bat 'mvn clean install package'
+                            }
+                        }
+                    }
+                }
+
+
+
+
+                     stage('Create Docker Images and run') {
+                    steps {
+                        script {
+
+                                bat "docker-compose down"
+
+                                bat "docker-compose up --build -d"
+
+
+
+                        }
+                    }
+                }
+
+stage('Build Server') {
+    steps {
+    script{
+        dir('eureka-server') {
+
+            withSonarQubeEnv('SonarServer') {
+                bat "mvn clean verify sonar:sonar"
+            }
+
+                }
+
+
+    }
+    }
+}
+
+
+stage('Build profile') {
+    steps {
+    script{
+        dir('profile') {
+
+            withSonarQubeEnv('SonarServer') {
+                bat "mvn clean verify sonar:sonar"
+            }
+
+                }
+
+
+    }
+    }
+}
+
+stage('Build portfolio') {
+    steps {
+    script{
+        dir('portfolio') {
+
+            withSonarQubeEnv('SonarServer') {
+                bat "mvn clean verify sonar:sonar"
+            }
+
+                }
+
+
+    }
+    }
+}
+
+stage('Build gateway') {
+    steps {
+    script{
+        dir('gateway-server') {
+
+            withSonarQubeEnv('SonarServer') {
+                bat "mvn clean verify sonar:sonar"
+            }
+
+                }
+
+
+    }
+    }
+}
+
+    }
+}
